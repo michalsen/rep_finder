@@ -1,0 +1,55 @@
+<?php
+
+/**
+ * Implements hook_init().
+ */
+function rep_finder_init() {
+	// 735 is the rep finder results page
+	if(arg(1) == 735) {
+		if(isset($_GET['zip'])) {
+			rep_finder_redirect($_GET['zip']);
+		}
+	}
+}
+
+function rep_finder_to_state($zip_code) {
+	$prefix = substr($zip_code, 0, 3);
+	$csv = fopen(dirname(__FILE__) . '/zip_code_prefixes.csv', 'r');
+	while($row = fgetcsv($csv)) {
+		if(substr($row[0], 0, 2) !== "//") {
+			if(trim($row[0]) == $prefix) {
+				return $row[2];
+			}
+		}
+	}
+}
+
+function rep_finder_taxonomy_lookup($state_abbr) {
+  $states = taxonomy_vocabulary_machine_name_load('states');
+
+  $taxonomy_query = new EntityFieldQuery();
+  $taxonomy_terms = $taxonomy_query->entityCondition('entity_type', 'taxonomy_term')
+    ->propertyCondition('vid', $states->vid)
+    ->fieldCondition('field_abbreviation', 'value', $state_abbr)
+    ->range(0, 1)
+    ->execute();
+  if(isset($taxonomy_terms['taxonomy_term']) && count($taxonomy_terms['taxonomy_term'])) {
+  	$term = array_pop($taxonomy_terms['taxonomy_term']);
+		return $term->tid;
+  }
+
+  // Fall through
+  return FALSE;
+}
+
+// HARD CODED BADNESS!  Bewarned!!
+function rep_finder_redirect($zip_code) {
+	$state_abbr = rep_finder_to_state($zip_code);
+	$state_taxonomy_id = rep_finder_taxonomy_lookup($state_abbr);
+	drupal_goto('node/735', array(
+		'absolute' => TRUE,
+		'query' => array(
+			'state' => $state_taxonomy_id,
+		),
+	));
+}

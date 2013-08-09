@@ -1,0 +1,6 @@
+name = Rep Finder
+description = Customizes Find-a-Rep functionality
+package = StraightNorth Custom
+dependencies[] = views
+core = 7.x
+files[] = rep_finder.module
